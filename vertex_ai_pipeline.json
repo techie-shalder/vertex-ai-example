@@ -1,0 +1,102 @@
+{
+    "pipeline_spec": {
+      "parameters": [
+        {
+          "name": "project_id",
+          "type": "String"
+        },
+        {
+          "name": "dataset_id",
+          "type": "String"
+        },
+        {
+          "name": "table_id",
+          "type": "String"
+        },
+        {
+          "name": "gcs_uri",
+          "type": "String"
+        },
+        {
+          "name": "model_display_name",
+          "type": "String"
+        },
+        {
+          "name": "endpoint_display_name",
+          "type": "String"
+        }
+      ],
+      "pipeline_info": {
+        "name": "Vertex AI Pipeline",
+        "description": "A pipeline to demonstrate Vertex AI capabilities"
+      },
+      "pipeline_root": "gs://your-bucket/path/to/pipeline_root",
+      "components": [
+        {
+          "name": "create_bigquery_dataset",
+          "description": "Component to create a BigQuery dataset",
+          "implementation": {
+            "container": {
+              "image": "gcr.io/kfp-examples/create-bigquery-dataset:latest",
+              "args": [
+                "--project_id",
+                "{{inputs.parameters.project_id}}",
+                "--dataset_id",
+                "{{inputs.parameters.dataset_id}}"
+              ]
+            }
+          },
+          "inputs": [
+            {
+              "name": "project_id",
+              "type": "String"
+            },
+            {
+              "name": "dataset_id",
+              "type": "String"
+            }
+          ],
+          "outputs": []
+        },
+        {
+          "name": "export_bigquery_to_gcs",
+          "description": "Component to export a BigQuery table to GCS",
+          "implementation": {
+            "container": {
+              "image": "gcr.io/kfp-examples/export-bigquery-to-gcs:latest",
+              "args": [
+                "--project_id",
+                "{{inputs.parameters.project_id}}",
+                "--dataset_id",
+                "{{inputs.parameters.dataset_id}}",
+                "--table_id",
+                "{{inputs.parameters.table_id}}",
+                "--gcs_uri",
+                "{{inputs.parameters.gcs_uri}}"
+              ]
+            }
+          },
+          "inputs": [
+            {
+              "name": "project_id",
+              "type": "String"
+            },
+            {
+              "name": "dataset_id",
+              "type": "String"
+            },
+            {
+              "name": "table_id",
+              "type": "String"
+            },
+            {
+              "name": "gcs_uri",
+              "type": "String"
+            }
+          ],
+          "outputs": []
+        }
+      ]
+    }
+  }
+  

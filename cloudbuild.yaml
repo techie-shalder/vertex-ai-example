@@ -1,0 +1,32 @@
+steps:
+  # Step 1: Clone the repository
+  - name: 'gcr.io/cloud-builders/git'
+    args: ['clone', 'https://github.com/your-username/your-repository.git']
+
+  # Step 2: Set up gcloud authentication
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud auth activate-service-account --key-file=your-service-account-key.json
+        gcloud config set project your-project-id
+
+  # Step 3: Build the pipeline Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/your-pipeline-image', '.']
+    dir: 'your-repository-path'
+
+  # Step 4: Push the pipeline Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/your-pipeline-image']
+
+  # Step 5: Compile and deploy the pipeline using Vertex AI Pipelines
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud config set project your-project-id
+        gcloud builds submit --config=cloudbuild_kfp.yaml .
+        gcloud beta ai pipelines create --display-name="Your Pipeline Name" --pipeline-root=gs://your-bucket/path/to/pipeline_root --region=us-central1 --description="Your Pipeline Description"
