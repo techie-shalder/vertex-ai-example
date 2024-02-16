@@ -1,91 +1,120 @@
 import kfp
-from kfp.v2 import dsl, compiler
-from kfp.v2.dsl import (
-    Dataset,
-    Input,
-    Model,
-    Output,
-    ComponentStore,
-)
-from kfp.v2.google import big_query, xgboost, ai_platform
+from kfp import components
+from kfp import dsl
 
-# Define component store
-components = ComponentStore(
-    url="https://raw.githubusercontent.com/kubeflow/pipelines/master/components/gcp/"
-)
+# Define component functions
+@components.create_component_from_func
+def create_bigquery_dataset(project_id: str, dataset_id: str):
+    from google.cloud import bigquery
 
+    client = bigquery.Client(project=project_id)
+    dataset = bigquery.Dataset(f"{project_id}.{dataset_id}")
+    dataset.location = "US"
+    dataset = client.create_dataset(dataset, exists_ok=True)
+
+@components.create_component_from_func
+def export_dataset_to_gcs(project_id: str, dataset_id: str, gcs_path: str):
+    from google.cloud import bigquery
+
+    client = bigquery.Client(project=project_id)
+    job_config = bigquery.job.ExtractJobConfig()
+    job_config.destination_format = bigquery.DestinationFormat.NEWLINE_DELIMITED_JSON
+    dataset_ref = client.dataset(dataset_id, project=project_id)
+    job = client.extract_table(dataset_ref.table("YOUR_TABLE_NAME"), gcs_path, job_config=job_config)
+    job.result()
+
+@components.create_component_from_func
+def train_xgboost_model(training_data_path: str, model_output_path: str):
+    import xgboost as xgb
+    import pandas as pd
+
+    # Load data
+    data = pd.read_csv(training_data_path)
+    X = data.drop(columns=['target'])
+    y = data['target']
+
+    # Train XGBoost model
+    model = xgb.XGBClassifier()
+    model.fit(X, y)
+
+    # Save model
+    model.save_model(model_output_path)
+
+@components.create_component_from_func
+def create_endpoint(project_id: str, region: str, endpoint_name: str):
+    from google.cloud import aiplatform
+
+    # Initialize the AI Platform client
+    aiplatform.init(project=project_id, location=region)
+
+    # Create an endpoint
+    endpoint = aiplatform.Endpoint.create(display_name=endpoint_name)
+
+    return endpoint.name
+
+@components.create_component_from_func
+def deploy_model_to_endpoint(project_id: str, region: str, model_path: str, endpoint_id: str):
+    from google.cloud import aiplatform
+
+    # Initialize the AI Platform client
+    aiplatform.init(project=project_id, location=region)
+
+    # Get the model resource
+    model = aiplatform.Model.upload(
+        display_name="MyModel",
+        artifact_uri=model_path,
+        serving_container_image_uri="gcr.io/cloud-aiplatform/prediction/xgboost-cpu.0-82:latest",
+    )
+
+    # Deploy the model to the endpoint
+    endpoint = aiplatform.Endpoint(endpoint_id)
+    deployed_model = endpoint.deploy(model)
+
+    return deployed_model.name
+
+# Define the pipeline
 @dsl.pipeline(
-    name="Vertex AI Pipeline",
-    description="A pipeline to demonstrate Vertex AI capabilities"
+    name="MyPipeline",
+    description="A pipeline to create a BigQuery dataset, export dataset, train XGBoost model, and deploy it."
 )
-def vertex_ai_pipeline(
+def my_pipeline(
     project_id: str,
-    dataset_name: str,
-    table_name: str,
-    model_display_name: str,
-    endpoint_display_name: str,
-    region: str = "us-central1",
+    dataset_id: str,
+    gcs_path: str,
+    training_data_path: str,
+    model_output_path: str,
+    endpoint_name: str,
+    region: str,
 ):
-    # Step 1: Create a BigQuery dataset
-    bq_create_dataset = big_query.create_dataset_op(
-        project_id=project_id, dataset_id=dataset_name
-    )
+    create_bigquery_dataset_op = create_bigquery_dataset(project_id, dataset_id)
+    export_dataset_to_gcs_op = export_dataset_to_gcs(project_id, dataset_id, gcs_path)
+    train_xgboost_model_op = train_xgboost_model(training_data_path, model_output_path)
+    create_endpoint_op = create_endpoint(project_id, region, endpoint_name)
+    deploy_model_to_endpoint_op = deploy_model_to_endpoint(project_id, region, model_output_path, create_endpoint_op.output)
 
-    # Step 2: Export the dataset
-    bq_export_op = big_query.export_big_query_to_gcs_op(
-        project_id=project_id,
-        dataset_id=dataset_name,
-        table_id=table_name,
-        gcs_uri=f"gs://{bucket_name}/{dataset_name}/",
-    )
-
-    # Step 3: Train an XGBoost model
-    xgboost_train_op = xgboost.train_op(
-        training_data=bq_export_op.outputs["output_gcs_uri"],
-        project=project_id,
-        display_name=model_display_name,
-    )
-
-    # Step 4: Create an Endpoint resource
-    create_endpoint_op = ai_platform.EndpointCreateOp(
-        display_name=endpoint_display_name, project=project_id
-    )
-
-    # Step 5: Deploy the Model resource to the Endpoint resource
-    deploy_model_op = ai_platform.ModelDeployOp(
-        model=xgboost_train_op.outputs["model"],
-        endpoint=create_endpoint_op.outputs["endpoint"],
-    )
-
-    # Compile the pipeline
-    pipeline = dsl.Pipeline(
-        name="Vertex AI Pipeline",
-        description="A pipeline to demonstrate Vertex AI capabilities",
-        pipeline_root="gs://your-bucket/path/to/pipeline_root",
-        components=[bq_create_dataset, bq_export_op, xgboost_train_op, create_endpoint_op, deploy_model_op],
-    )
-
-    return pipeline
+    create_bigquery_dataset_op.after(export_dataset_to_gcs_op)
+    train_xgboost_model_op.after(export_dataset_to_gcs_op)
+    deploy_model_to_endpoint_op.after(train_xgboost_model_op)
 
 # Compile the pipeline
-compiler.Compiler().compile(
-    pipeline_func=vertex_ai_pipeline,
-    package_path="vertex_ai_pipeline.json",
-)
+pipeline_func = my_pipeline
+pipeline_filename = pipeline_func.__name__ + '.pipeline.tar.gz'
+import kfp.compiler as compiler
+compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
-# Execute the pipeline using Vertex AI Pipelines
-api_client = kfp.Client()
-run_name = "vertex-ai-pipeline-run"
-experiment_name = "Vertex AI Pipeline Experiment"
-run_result = api_client.create_run_from_pipeline_package(
-    pipeline_file="vertex_ai_pipeline.json",
-    run_name=run_name,
-    experiment_name=experiment_name,
-    params={
-        "project_id": "your-project-id",
-        "dataset_name": "your-dataset-name",
-        "table_name": "your-table-name",
-        "model_display_name": "your-model-display-name",
-        "endpoint_display_name": "your-endpoint-display-name",
-    },
-)
+# Execute the pipeline
+pipeline_args = {
+    'project_id': 'YOUR_PROJECT_ID',
+    'dataset_id': 'YOUR_DATASET_ID',
+    'gcs_path': 'gs://YOUR_BUCKET/dataset_export/',
+    'training_data_path': 'gs://YOUR_BUCKET/training_data.csv',
+    'model_output_path': 'gs://YOUR_BUCKET/model/',
+    'endpoint_name': 'YOUR_ENDPOINT_NAME',
+    'region': 'YOUR_REGION'
+}
+
+client = kfp.Client()
+exp = client.create_experiment(name='my_experiment')
+
+run_name = 'MyPipeline_run'
+run_result = client.run_pipeline(exp.id, run_name, pipeline_filename, params=pipeline_args)
