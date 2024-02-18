@@ -1,39 +1,12 @@
 steps:
-  # Step 1: Checkout the code from the repository
-  - name: 'gcr.io/cloud-builders/git'
-    args: ['clone', 'https://github.com/techie-shalder/vertex-ai-example']
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/vertex-ai-pipeline', '.']
 
-  # Step 2: Set up Python environment and install dependencies
-  - name: 'gcr.io/cloud-builders/python'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install kfp google-cloud-bigquery google-cloud-storage xgboost google-cloud-aiplatform
+  # Step 2: Push the Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/vertex-ai-pipeline']
 
-  # Step 3: Compile the pipeline
-  - name: 'gcr.io/cloud-builders/python'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        python -c "import vertex_ai_pipeline"  # Import to ensure components are registered
-        python vertex_ai_pipeline.py
-
-  # Step 4: Upload the compiled pipeline to Google Cloud Storage
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['cp', 'vertex_ai_pipeline.json', 'gs://bucket-shining-granite-414702-01/']
-
-  # Step 5: Submit the pipeline to Vertex AI
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud auth activate-service-account --key-file=https://storage.cloud.google.com/bucket-shining-granite-414702-01/shining-granite-414702-486c7598da11.json
-        gcloud beta datapipelines pipeline create --region=us-central1 --display-name="Vertex AI Pipeline" --input=gs://bucket-shining-granite-414702-01/vertex_ai_pipeline.json --type='PIPELINE_JOB'
-
-timeout: '600s'
+  # Step 3: Run the pipeline script using the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['run', 'gcr.io/$PROJECT_ID/vertex-ai-pipeline']
