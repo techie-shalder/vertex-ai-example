@@ -129,7 +129,8 @@ job = aiplatform.PipelineJob(
     template_path="vertex_ai_pipeline.json",
     pipeline_root="gs://bucket-shining-granite-414702-01/vertex_ai_pipeline/pipeline_root/",
     enable_caching=False,
-    location="us-central1"
+    location="us-central1",
+    project= project_id,
 )
 
 # Run the job
