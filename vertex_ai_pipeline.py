@@ -1,9 +1,9 @@
 import kfp
-from google_cloud_pipeline_components import aiplatform as gcc_aiplatform
+from google.cloud import aiplatform
+from google.cloud.aiplatform import Endpoint
 
 from kfp.v2 import compiler
 from kfp.v2.dsl import (Dataset, Input, Model, Model)
-
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
 def create_bigquery_dataset():
     from google.cloud import bigquery
@@ -96,7 +96,7 @@ project_id = "shining-granite-414702"
 location = "us-central1"
 
 # Initialize the AI Platform client
-ai_client =  gcc_aiplatform.AIPlatformClient(project_id=project_id, region=location)
+ai_client = aiplatform.AIPlatformClient(project_id=project_id, region=location)
 
 # Upload and run the pipeline on KFP
 ai_client.create_run_from_job_spec("vertex_ai_pipeline.json")
