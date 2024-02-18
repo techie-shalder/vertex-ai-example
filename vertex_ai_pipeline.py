@@ -3,7 +3,9 @@ from google.cloud import aiplatform
 from google.cloud.aiplatform import Endpoint
 
 from kfp import compiler
-from kfp.dsl import (Dataset, Input, Model, Model)
+from kfp.dsl import (Artifact, Dataset, Input, Output)
+
+
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
 def create_bigquery_dataset():
     from google.cloud import bigquery
@@ -70,10 +72,16 @@ def create_endpoint():
 
     return endpoint
 
-@kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-aiplatform"])
-def deploy_model_to_endpoint(model: Input[Model], endpoint: Input[Endpoint]):
-    # Deploy the trained model to the endpoint
-    endpoint.deploy(model=model, machine_type="n1-standard-4")
+# @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-aiplatform"])
+# def deploy_model_to_endpoint(model: Input[Artifact], endpoint: Input[Artifact]) -> Output[Artifact]:
+#     # Initialize AIPlatformClient
+#     ai_client = aiplatform.AIPlatformClient()
+
+#     # Deploy the trained model to the endpoint
+#     deployed_model = ai_client.create_endpoint(deployed_model=model)
+
+#     return deployed_model
+
 
 # Define your KFP pipeline
 @kfp.dsl.pipeline(name="vertex-ai-pipeline")
@@ -83,8 +91,9 @@ def vertex_ai_pipeline():
     print(export_dataset_task)
     train_xgboost_model_task = train_xgboost_model(bigquery_dataset_task.output)
     endpoint_creation_task = create_endpoint()
-    model_deployment_task = deploy_model_to_endpoint(train_xgboost_model_task.output, endpoint_creation_task.output)
-    print(model_deployment_task)
+   #  model_deployment_task = deploy_model_to_endpoint(train_xgboost_model_task.output, endpoint_creation_task.output)
+   # print(model_deployment_task)
+    
 # Compile the KFP pipeline
 compiler.Compiler().compile(
     pipeline_func=vertex_ai_pipeline,
