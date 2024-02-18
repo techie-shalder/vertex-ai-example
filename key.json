@@ -1,0 +1,13 @@
+{
+    "type": "service_account",
+    "project_id": "shining-granite-414702",
+    "private_key_id": "486c7598da11d05335a541dd1248fcf23a1315fc",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC0GjNnqKymKCkB\nvOUKTVh+cXmDOrZ0KuNHRVmxcbRgVWMF17w3RZU6G5Qt1dhfv9rB13mMVOSaniGV\nKvmG8cNZ3XJ/N5GOuDnPQn3MyPDWib8wid3IZbogsfSrKRxQiodfwT+3k2d0J2WV\nxec9rBFCtWo+PcrZ+q1v6debN1Jkt8ZqTrWpNdZ+TyUEaKyvwbhIlOzAxD4DAszr\nOUlkNXWR94a+tSEQr+/4yAQ5q8hiEXC+QJetGp30bMZzGqsLyjDO+yPdWMlN560G\nzsdJqryMRLZM0rvYBxOJmJb/2/5GhT1g+okta1awOuSWM8Bu+GO6rHq29mJc8tZE\nF0yFVUlpAgMBAAECggEAFnw9bfwH9xQlP31r+ofqzBmCdlTwlcsLdljVEINtxcev\nTdnP+rYWIguyqbDMu3KOXxxV5WRtaJTkxDT584QwU6JDQtkHFBKRzBuk7VnqgJxw\nuWCDBxuVO/L/xRVEPtV2voiX2gVeGYk4JHVxb/iRLJsN7UCleGa0u9fN9mfXInH+\nIuF7QIcLkt3pZ6o8VRFjABBM4ZdmQmwdqgw6QtrYHso4U4oh2HCq7NO7Oqxo5MEM\noKZw4xaoxpH19eyTc+YlSxwJs50IpcyPkUvo6Xo1WYbkXq2yTvqrqMnqi7FC7ww+\n3hxDQBifKvXYFMfkHSPCNRIGUdn5Z+whJdrDh/XxoQKBgQDb5nMaWDsPYBvCSwlH\n2ylYnQtOWhFDlqfVQpGmNUxcl+lU0KE5+0ffCIJCI/4SViWiCXLXZekTWz2MQSP4\nDEUxcT7zhSt9g70q9lSp8MxYTf4tB1bgbR7JLWyN5gEuRU4V2/Jfu5Br3aV9fGUi\nMNYvUjig3egGiNKtaDy9ezojyQKBgQDRqzPOeLGnvjjiPxyKOLSDzxYvOEFmkSdS\nBzuwZlRbRnELgSSeKVMbjJa+oF9mWAO/Cl+b/cKCa9NWl6XJA4NxWN4JTOrwOT8e\nfeQPX3V2PvLPQoRpKT4xwugieNCo3KlwdrGx4BX07gvITM2Tw6dtvoONkoI8h0sq\nkYJSubKIoQKBgF/uApyljO5CMRnrfhr4wurDZ+FAbXOcz467QarOaYejRckYUp1m\nv43OunR8GySIrFYp5Q2OicVF8m2zJSvavny5OIsntzdEN0v8tiaEw8BqFc4y+3Vg\nZSPCSy8D/dPfrBbhIrUcr/4+bSl3EO9/epCeP9H9vHDNU4sOhCDtFwnxAoGAAPQQ\nVj4CQMsCozS6Qn6jg33rkedllLvQO/VAdjrg41Fcrjq2GeoCMLvg65j7FhIMYk//\nw0vSGJm46kniPRnA/UD0MYKiBtmbyd20rcU3WYRLwlmBFKFVYRCL0axO9pWaR6Ki\niDaGowh6ET0YKjXXiw40tu4VnYTX+KeUuh+SCkECgYAB+v7+3yjd5L1A5RwW1zR0\n+nzsskNrJqSVO8tmKDLSYFdnEf3hOwsnc501d4/hXeB1ao9NaJFkc2nNwApBV6OR\njbiGyqL6747AKFMPVWZ84Z/UsvX2bJA5pO9P60ckf5XfZUxKFb5RQzhlf8c38aL+\nmLTDW7G6RNVxthH0AgpUCQ==\n-----END PRIVATE KEY-----\n",
+    "client_email": "service-account-1@shining-granite-414702.iam.gserviceaccount.com",
+    "client_id": "113612589313008426535",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/service-account-1%40shining-granite-414702.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+  }

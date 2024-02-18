@@ -6,6 +6,8 @@ from kfp import compiler
 from kfp.dsl import (Artifact, Dataset, Input, Output)
 
 
+# Set the path to the service account key file
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
 def create_bigquery_dataset():
     from google.cloud import bigquery
