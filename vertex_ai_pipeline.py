@@ -2,7 +2,7 @@ import kfp
 from google.cloud import aiplatform
 from google.cloud.aiplatform import Endpoint
 
-from kfp.v2 import compiler
+from kfp import compiler
 from kfp.v2.dsl import (Dataset, Input, Model, Model)
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
 def create_bigquery_dataset():
