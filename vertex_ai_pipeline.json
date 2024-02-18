@@ -1,102 +1,92 @@
 {
-    "pipeline_spec": {
-      "parameters": [
-        {
-          "name": "project_id",
-          "type": "String"
-        },
-        {
-          "name": "dataset_id",
-          "type": "String"
-        },
-        {
-          "name": "table_id",
-          "type": "String"
-        },
-        {
-          "name": "gcs_uri",
-          "type": "String"
-        },
-        {
-          "name": "model_display_name",
-          "type": "String"
-        },
-        {
-          "name": "endpoint_display_name",
-          "type": "String"
-        }
-      ],
-      "pipeline_info": {
-        "name": "Vertex AI Pipeline",
-        "description": "A pipeline to demonstrate Vertex AI capabilities"
-      },
-      "pipeline_root": "gs://your-bucket/path/to/pipeline_root",
-      "components": [
-        {
-          "name": "create_bigquery_dataset",
-          "description": "Component to create a BigQuery dataset",
-          "implementation": {
-            "container": {
-              "image": "gcr.io/kfp-examples/create-bigquery-dataset:latest",
-              "args": [
-                "--project_id",
-                "{{inputs.parameters.project_id}}",
-                "--dataset_id",
-                "{{inputs.parameters.dataset_id}}"
-              ]
-            }
-          },
-          "inputs": [
-            {
-              "name": "project_id",
-              "type": "String"
-            },
-            {
-              "name": "dataset_id",
-              "type": "String"
-            }
-          ],
-          "outputs": []
-        },
-        {
-          "name": "export_bigquery_to_gcs",
-          "description": "Component to export a BigQuery table to GCS",
-          "implementation": {
-            "container": {
-              "image": "gcr.io/kfp-examples/export-bigquery-to-gcs:latest",
-              "args": [
-                "--project_id",
-                "{{inputs.parameters.project_id}}",
-                "--dataset_id",
-                "{{inputs.parameters.dataset_id}}",
-                "--table_id",
-                "{{inputs.parameters.table_id}}",
-                "--gcs_uri",
-                "{{inputs.parameters.gcs_uri}}"
-              ]
-            }
-          },
-          "inputs": [
-            {
-              "name": "project_id",
-              "type": "String"
-            },
-            {
-              "name": "dataset_id",
-              "type": "String"
-            },
-            {
-              "name": "table_id",
-              "type": "String"
-            },
-            {
-              "name": "gcs_uri",
-              "type": "String"
-            }
-          ],
-          "outputs": []
-        }
-      ]
+  "components": {
+    "comp-create-bigquery-dataset": {
+      "executorLabel": "exec-create-bigquery-dataset"
+    },
+    "comp-export-bigquery-dataset": {
+      "executorLabel": "exec-export-bigquery-dataset"
     }
-  }
-  
+  },
+  "defaultPipelineRoot": "gs://bucket-shining-granite-414702-01/vertex_ai_pipeline/pipeline_root/",
+  "deploymentSpec": {
+    "executors": {
+      "exec-create-bigquery-dataset": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "create_bigquery_dataset"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location 'google-cloud-bigquery' 'google-cloud-aiplatform' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef create_bigquery_dataset():\n    from google.cloud import bigquery\n\n    # Initialize BigQuery client\n    bq_client = bigquery.Client()\n\n    # Define your BigQuery dataset ID\n    dataset_id = \"shining-granite-414702.austin_311\"\n\n    # Create the BigQuery dataset\n    dataset = bq_client.create_dataset(dataset_id, exists_ok=True)\n\n    return dataset\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-export-bigquery-dataset": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "export_bigquery_dataset"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location 'google-cloud-bigquery' 'google-cloud-aiplatform' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef export_bigquery_dataset():\n    from google.cloud import bigquery\n\n    # Initialize BigQuery client\n    bq_client = bigquery.Client()\n\n    # Define your BigQuery dataset ID\n    dataset_id = \"shining-granite-414702.austin_311\"\n\n    # Define your GCS destination URI for export\n    gcs_uri = \"gs://bucket-shining-granite-414702-01/exported_dataset.csv\"\n\n    # Export the BigQuery dataset to GCS\n    job = bq_client.extract_table(dataset_id, \"311_service_requests\", gcs_uri)\n\n    return job\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "description": "My Pipeline Description",
+    "name": "vertex-ai-pipeline"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "create-bigquery-dataset": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-create-bigquery-dataset"
+          },
+          "taskInfo": {
+            "name": "create-bigquery-dataset"
+          }
+        },
+        "export-bigquery-dataset": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-export-bigquery-dataset"
+          },
+          "dependentTasks": [
+            "create-bigquery-dataset"
+          ],
+          "taskInfo": {
+            "name": "export-bigquery-dataset"
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.7.0"
+}

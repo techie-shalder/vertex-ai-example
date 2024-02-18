@@ -22,7 +22,7 @@ def create_bigquery_dataset():
     return dataset
 
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
-def export_bigquery_dataset(dataset: Input[Dataset]):
+def export_bigquery_dataset():
     from google.cloud import bigquery
 
     # Initialize BigQuery client
@@ -72,28 +72,42 @@ def create_endpoint():
 
     return endpoint
 
-# @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-aiplatform"])
-# def deploy_model_to_endpoint(model: Input[Artifact], endpoint: Input[Artifact]) -> Output[Artifact]:
-#     # Initialize AIPlatformClient
-#     ai_client = aiplatform.AIPlatformClient()
+def deploy_model_to_endpoint(model: Input[Artifact]) -> Output[Artifact]:
+    # Initialize AIPlatformClient
+    ai_client = aiplatform.AIPlatformClient()
 
-#     # Deploy the trained model to the endpoint
-#     deployed_model = ai_client.create_endpoint(deployed_model=model)
+    # Deploy the trained model to the endpoint
+    model_path = model.path  # Assuming the model artifact contains the path to the model
+    deployed_model = ai_client.create_endpoint(deployed_model=model_path)
 
-#     return deployed_model
-
+    # Return the deployed model (if needed)
+    return deployed_model
 
 # Define your KFP pipeline
-@kfp.dsl.pipeline(name="vertex-ai-pipeline")
+@kfp.dsl.pipeline(
+        name="vertex-ai-pipeline",
+        description="My Pipeline Description",
+        pipeline_root="gs://bucket-shining-granite-414702-01/vertex_ai_pipeline/pipeline_root/"
+)
 def vertex_ai_pipeline():
+    # Create BigQuery dataset
     bigquery_dataset_task = create_bigquery_dataset()
-    export_dataset_task = export_bigquery_dataset(bigquery_dataset_task.output)
-    print(export_dataset_task)
-    train_xgboost_model_task = train_xgboost_model(bigquery_dataset_task.output)
-    endpoint_creation_task = create_endpoint()
-   #  model_deployment_task = deploy_model_to_endpoint(train_xgboost_model_task.output, endpoint_creation_task.output)
-   # print(model_deployment_task)
     
+    # Export the BigQuery dataset
+    export_dataset_task = export_bigquery_dataset().after(bigquery_dataset_task)
+    print(export_dataset_task.outputs.keys())
+
+    # # Train an XGBoost model
+    # train_xgboost_model_task = train_xgboost_model(export_dataset_task.outputs['exported_data'])
+    
+    # # Create an endpoint
+    # create_endpoint_task = create_endpoint()
+    
+    # # Deploy the model to the endpoint
+    # deploy_model_task = deploy_model_to_endpoint(
+    #     model=train_xgboost_model_task.outputs['model'],
+    #     endpoint=create_endpoint_task.outputs['endpoint'])
+   
 # Compile the KFP pipeline
 compiler.Compiler().compile(
     pipeline_func=vertex_ai_pipeline,
@@ -104,8 +118,19 @@ compiler.Compiler().compile(
 project_id = "shining-granite-414702"
 location = "us-central1"
 
-# Initialize the AI Platform client
-ai_client = aiplatform.AIPlatformClient(project_id=project_id, region=location)
+# # Initialize the AI Platform client
+# ai_client = aiplatform.AIPlatformClient(project_id=project_id, region=location)
 
-# Upload and run the pipeline on KFP
-ai_client.create_run_from_job_spec("vertex_ai_pipeline.json")
+# # Upload and run the pipeline on KFP
+# ai_client.create_run_from_job_spec("vertex_ai_pipeline.json")
+# Configure the pipeline
+job = aiplatform.PipelineJob(
+    display_name="vertex_ai_pipeline",
+    template_path="vertex_ai_pipeline.json",
+    pipeline_root="gs://bucket-shining-granite-414702-01/vertex_ai_pipeline/pipeline_root/",
+    enable_caching=False,
+    location="us-central1"
+)
+
+# Run the job
+job.run()
