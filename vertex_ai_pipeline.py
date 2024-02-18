@@ -73,14 +73,14 @@ def deploy_model_to_endpoint(project_id: str, region: str, model_path: str, endp
 
     return deployed_model.name
 
-# Function to upload file to GCS
-def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
-    """Uploads a file to the bucket."""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
+# # Function to upload file to GCS
+# def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
+#     """Uploads a file to the bucket."""
+#     storage_client = storage.Client()
+#     bucket = storage_client.bucket(bucket_name)
+#     blob = bucket.blob(destination_blob_name)
 
-    blob.upload_from_filename(source_file_name)
+#     blob.upload_from_filename(source_file_name)
 
 # Define the pipeline
 @dsl.pipeline(
@@ -105,13 +105,13 @@ def my_pipeline(
     create_bigquery_dataset_op.after(export_dataset_to_gcs_op)
     train_xgboost_model_op.after(export_dataset_to_gcs_op)
     deploy_model_to_endpoint_op.after(train_xgboost_model_op)
-    upload_to_gcs("your-bucket-name", "vertex_ai_pipeline.json", "vertex_ai_pipeline.json")
+    # upload_to_gcs("your-bucket-name", "vertex_ai_pipeline.json", "vertex_ai_pipeline.json")
 
 
 
 # Compile the pipeline
 pipeline_func = my_pipeline
-pipeline_filename = pipeline_func.__name__ + '.pipeline.tar.gz'
+pipeline_filename = "vertex_ai_pipeline.json"
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
@@ -125,13 +125,13 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 # Execute the pipeline
 pipeline_args = {
-    'project_id': 'YOUR_PROJECT_ID',
-    'dataset_id': 'YOUR_DATASET_ID',
-    'gcs_path': 'gs://YOUR_BUCKET/dataset_export/',
-    'training_data_path': 'gs://YOUR_BUCKET/training_data.csv',
-    'model_output_path': 'gs://YOUR_BUCKET/model/',
-    'endpoint_name': 'YOUR_ENDPOINT_NAME',
-    'region': 'YOUR_REGION'
+    'project_id': 'shining-granite-414702',
+    'dataset_id': 'dataset01',
+    'gcs_path': 'gs://bucket-shining-granite-414702-01/dataset_export/',
+    'training_data_path': 'gs://bucket-shining-granite-414702-01/training_data.csv',
+    'model_output_path': 'gs://bucket-shining-granite-414702-01/model/',
+    'endpoint_name': 'endpoint01',
+    'region': 'us-central1'
 }
 
 # client = kfp.Client()

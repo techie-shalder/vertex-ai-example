@@ -1,7 +1,7 @@
 steps:
   # Step 1: Checkout the code from the repository
   - name: 'gcr.io/cloud-builders/git'
-    args: ['clone', 'https://github.com/your-repo.git', '.']
+    args: ['clone', 'https://github.com/techie-shalder/vertex-ai-example']
 
   # Step 2: Set up Python environment and install dependencies
   - name: 'gcr.io/cloud-builders/python'
@@ -25,7 +25,7 @@ steps:
 
   # Step 4: Upload the compiled pipeline to Google Cloud Storage
   - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['cp', 'vertex_ai_pipeline.json', 'gs://your-bucket-name/']
+    args: ['cp', 'vertex_ai_pipeline.json', 'gs://bucket-shining-granite-414702-01/']
 
   # Step 5: Submit the pipeline to Vertex AI
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -33,7 +33,7 @@ steps:
     args:
       - '-c'
       - |
-        gcloud auth activate-service-account --key-file=service-account.json
-        gcloud beta datapipelines pipeline create --region=us-central1 --display-name="Vertex AI Pipeline" --input=gs://your-bucket-name/vertex_ai_pipeline.json --type='PIPELINE_JOB'
+        gcloud auth activate-service-account --key-file=https://storage.cloud.google.com/bucket-shining-granite-414702-01/shining-granite-414702-486c7598da11.json
+        gcloud beta datapipelines pipeline create --region=us-central1 --display-name="Vertex AI Pipeline" --input=gs://bucket-shining-granite-414702-01/vertex_ai_pipeline.json --type='PIPELINE_JOB'
 
 timeout: '600s'
