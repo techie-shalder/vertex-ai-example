@@ -1,4 +1,5 @@
 import kfp
+import os
 from google.cloud import aiplatform
 from google.cloud.aiplatform import Endpoint
 
