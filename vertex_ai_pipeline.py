@@ -137,4 +137,4 @@ job = aiplatform.PipelineJob(
 )
 
 # Run the job
-job.run()
+job.run(service_account="service-account-1@shining-granite-414702.iam.gserviceaccount.com")
