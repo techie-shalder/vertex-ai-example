@@ -1,10 +1,7 @@
 import kfp
 from google.cloud import aiplatform
-from google_cloud_pipeline_components import aiplatform as gcc_aiplatform
 from kfp.v2 import compiler
-from kfp.v2.dsl import (Artifact, Dataset, Input, Model, Output, InputPath,
-                        OutputPath, ComponentSpec, OutputArtifact, Parameter,
-                        ClassificationMetrics, Metrics, Model, ModelPath)
+from kfp.v2.dsl import (Dataset, Input, Model, Model)
 from kfp.v2.google.client import AIPlatformClient
 
 @kfp.dsl.component(base_image="python:3.9", packages_to_install=["google-cloud-bigquery", "google-cloud-aiplatform"])
