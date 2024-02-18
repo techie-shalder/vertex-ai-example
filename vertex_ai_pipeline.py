@@ -1,3 +1,4 @@
+from google.cloud import aiplatform, storage
 import kfp
 from kfp import components
 from kfp import dsl
@@ -72,6 +73,15 @@ def deploy_model_to_endpoint(project_id: str, region: str, model_path: str, endp
 
     return deployed_model.name
 
+# Function to upload file to GCS
+def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
 # Define the pipeline
 @dsl.pipeline(
     name="MyPipeline",
@@ -95,12 +105,23 @@ def my_pipeline(
     create_bigquery_dataset_op.after(export_dataset_to_gcs_op)
     train_xgboost_model_op.after(export_dataset_to_gcs_op)
     deploy_model_to_endpoint_op.after(train_xgboost_model_op)
+    upload_to_gcs("your-bucket-name", "vertex_ai_pipeline.json", "vertex_ai_pipeline.json")
+
+
 
 # Compile the pipeline
 pipeline_func = my_pipeline
 pipeline_filename = pipeline_func.__name__ + '.pipeline.tar.gz'
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
+
+# # Submit the pipeline to Vertex AI Pipelines
+# pipeline_job = aiplatform.PipelineJob(
+#     display_name="Vertex AI Pipeline",
+#     template_path=pipeline_file,
+#     enable_caching=False  # Disable caching to ensure the pipeline runs fresh every time
+# )
+# pipeline_job.run(sync=True)
 
 # Execute the pipeline
 pipeline_args = {
@@ -113,8 +134,8 @@ pipeline_args = {
     'region': 'YOUR_REGION'
 }
 
-client = kfp.Client()
-exp = client.create_experiment(name='my_experiment')
+# client = kfp.Client()
+# exp = client.create_experiment(name='my_experiment')
 
-run_name = 'MyPipeline_run'
-run_result = client.run_pipeline(exp.id, run_name, pipeline_filename, params=pipeline_args)
+# run_name = 'MyPipeline_run'
+# run_result = client.run_pipeline(exp.id, run_name, pipeline_filename, params=pipeline_args)
