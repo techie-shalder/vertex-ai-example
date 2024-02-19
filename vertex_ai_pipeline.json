@@ -1,10 +1,95 @@
 {
   "components": {
     "comp-create-bigquery-dataset": {
-      "executorLabel": "exec-create-bigquery-dataset"
+      "executorLabel": "exec-create-bigquery-dataset",
+      "outputDefinitions": {
+        "artifacts": {
+          "Output": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-create-endpoint": {
+      "executorLabel": "exec-create-endpoint",
+      "outputDefinitions": {
+        "artifacts": {
+          "Output": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-deploy-model-to-endpoint": {
+      "executorLabel": "exec-deploy-model-to-endpoint",
+      "inputDefinitions": {
+        "artifacts": {
+          "endpoint": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
     },
     "comp-export-bigquery-dataset": {
-      "executorLabel": "exec-export-bigquery-dataset"
+      "executorLabel": "exec-export-bigquery-dataset",
+      "inputDefinitions": {
+        "artifacts": {
+          "dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "Output": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-train-xgboost-model": {
+      "executorLabel": "exec-train-xgboost-model",
+      "inputDefinitions": {
+        "artifacts": {
+          "dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "Output": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
     }
   },
   "defaultPipelineRoot": "gs://bucket-shining-granite-414702-01/vertex_ai_pipeline/pipeline_root/",
@@ -25,7 +110,47 @@
             "sh",
             "-ec",
             "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef create_bigquery_dataset():\n    from google.cloud import bigquery\n\n    # Initialize BigQuery client\n    bq_client = bigquery.Client()\n\n    # Define your BigQuery dataset ID\n    dataset_id = \"shining-granite-414702.austin_311\"\n\n    # Create the BigQuery dataset\n    dataset = bq_client.create_dataset(dataset_id, exists_ok=True)\n\n    return dataset\n\n"
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef create_bigquery_dataset() -> Dataset:\n    from google.cloud import bigquery\n    from google.oauth2 import service_account\n\n    dataset_id = \"austin_311\"\n    # Initialize BigQuery client\n    service_account_info = json.load(open('./key.json'))\n    print(service_account_info)\n    credentials = service_account.Credentials.from_service_account_info(service_account_info)\n\n    client = bigquery.Client(credentials=credentials)\n\n    # Create dataset\n    dataset = bigquery.Dataset(client.dataset(dataset_id))\n    dataset = client.create_dataset(dataset, exists_ok=True)\n\n    return dataset\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-create-endpoint": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "create_endpoint"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\nfrom __main__ import MyEndpoint\n\ndef create_endpoint()-> MyEndpoint:\n    from google.cloud import aiplatform\n\n    # Initialize Vertex AI client\n    # Create credentials from the service account file\n    credential = credentials.Credentials.from_service_account_file(\"key.json\")\n    client = aiplatform.gapic.EndpointServiceClient(credentials=credential)\n\n    # Create endpoint\n    endpoint = client.create_endpoint(display_name=\"my_endpoint\")\n\n    return Endpoint(name=endpoint.name)\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-deploy-model-to-endpoint": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "deploy_model_to_endpoint"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\nfrom __main__ import MyEndpoint\n\ndef deploy_model_to_endpoint(model: Input[Model], endpoint: Input[MyEndpoint]):\n    from google.cloud import aiplatform\n\n    # Initialize Vertex AI client\n     # Create credentials from the service account file\n    credential = credentials.Credentials.from_service_account_file(\"key.json\")\n\n    client = aiplatform.gapic.EndpointServiceClient(credentials=credential)\n\n    # Deploy model to endpoint\n    deployed_model = client.deploy_model(endpoint.name, model=model)\n\n    return MyEndpoint(name=deployed_model.endpoint)\n\n"
           ],
           "image": "python:3.9"
         }
@@ -45,7 +170,27 @@
             "sh",
             "-ec",
             "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef export_bigquery_dataset():\n    from google.cloud import bigquery\n\n    # Initialize BigQuery client\n    bq_client = bigquery.Client()\n\n    # Define your BigQuery dataset ID\n    dataset_id = \"shining-granite-414702.austin_311\"\n\n    # Define your GCS destination URI for export\n    gcs_uri = \"gs://bucket-shining-granite-414702-01/exported_dataset.csv\"\n\n    # Export the BigQuery dataset to GCS\n    job = bq_client.extract_table(dataset_id, \"311_service_requests\", gcs_uri)\n\n    return job\n\n"
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef export_bigquery_dataset(dataset: Input[Dataset]) -> Artifact:\n    from google.cloud import bigquery\n\n    # Initialize BigQuery client\n    # Create credentials from the service account file\n    credential = credentials.Credentials.from_service_account_file(\"key.json\")\n\n    client = bigquery.Client(credentials=credential)\n\n    # Export dataset\n    job_config = bigquery.ExtractJobConfig(destination_format=\"CSV\")\n    job = client.extract_table(\n        dataset.uri, \"311_service_requests\", destination_uris=[\"gs://bucket-shining-granite-414702-01/exported_dataset.csv\"], job_config=job_config\n    )\n    job.result()\n\n    # Return exported artifact\n    return Artifact(\"gs://bucket-shining-granite-414702-01/exported_dataset.csv\")\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      },
+      "exec-train-xgboost-model": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train_xgboost_model"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&  python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_xgboost_model(dataset: Input[Artifact]) -> Model:\n    import xgboost as xgb\n    import pandas as pd\n\n    # Load dataset\n    data = pd.read_csv(dataset.uri)\n    X, y = data.drop(columns=[\"target\"]), data[\"target\"]\n\n    # Train XGBoost model\n    model = xgb.XGBClassifier()\n    model.fit(X, y)\n\n    # Save model\n    model.save_model(\"/tmp/model.bst\")\n\n    # Return trained model artifact\n    return Model(\"/tmp/model.bst\")\n\n"
           ],
           "image": "python:3.9"
         }
@@ -53,7 +198,7 @@
     }
   },
   "pipelineInfo": {
-    "description": "My Pipeline Description",
+    "description": "A pipeline to create and deploy an XGBoost model on Vertex AI.",
     "name": "vertex-ai-pipeline"
   },
   "root": {
@@ -70,6 +215,48 @@
             "name": "create-bigquery-dataset"
           }
         },
+        "create-endpoint": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-create-endpoint"
+          },
+          "taskInfo": {
+            "name": "create-endpoint"
+          }
+        },
+        "deploy-model-to-endpoint": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-deploy-model-to-endpoint"
+          },
+          "dependentTasks": [
+            "create-endpoint",
+            "train-xgboost-model"
+          ],
+          "inputs": {
+            "artifacts": {
+              "endpoint": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "Output",
+                  "producerTask": "create-endpoint"
+                }
+              },
+              "model": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "Output",
+                  "producerTask": "train-xgboost-model"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "deploy-model-to-endpoint"
+          }
+        },
         "export-bigquery-dataset": {
           "cachingOptions": {
             "enableCache": true
@@ -80,8 +267,42 @@
           "dependentTasks": [
             "create-bigquery-dataset"
           ],
+          "inputs": {
+            "artifacts": {
+              "dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "Output",
+                  "producerTask": "create-bigquery-dataset"
+                }
+              }
+            }
+          },
           "taskInfo": {
             "name": "export-bigquery-dataset"
+          }
+        },
+        "train-xgboost-model": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train-xgboost-model"
+          },
+          "dependentTasks": [
+            "export-bigquery-dataset"
+          ],
+          "inputs": {
+            "artifacts": {
+              "dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "Output",
+                  "producerTask": "export-bigquery-dataset"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "train-xgboost-model"
           }
         }
       }
